@@ -38,7 +38,7 @@ func sha1Hex(texte string) []byte {
 	return sum[:]
 }
 
-func emprinteToString(empreinte []byte) string {
+func empreinteToString(empreinte []byte) string {
 	return strings.ToUpper(hex.EncodeToString(empreinte))
 }
 
@@ -76,8 +76,9 @@ func lireFichierTest(nomFichier string) (Global, string, []string, error) {
 		return Global{}, "", nil, fmt.Errorf("le fichier doit contenir au moins 4 lignes (%d trouvées)", len(lignes))
 	}
 
-	hashName := strings.Tri	if hashName != "SHA1" {
-mSpace(lignes[0])
+	hashName := strings.TrimSpace(lignes[0])
+	if hashName != "SHA1" {
+
 		return Global{}, "", nil, fmt.Errorf("fonction de hachage non supportée : %q", hashName)
 	}
 
@@ -102,7 +103,7 @@ func executerCommande(g Global, commande string, arguments []string) error {
 			return fmt.Errorf("la commande hash attend 1 argument (ligne 5)")
 		}
 		texte := arguments[0]
-		fmt.Printf("%s(%q) = %s\n", g.hashName, texte, emprinteToString(sha1Hex(texte)))
+		fmt.Printf("%s(%q) = %s\n", g.hashName, texte, empreinteToString(sha1Hex(texte)))
 
 	case "config":
 		// la configuration est déjà affichée pour chaque fichier test
