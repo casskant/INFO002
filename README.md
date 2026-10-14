@@ -1,6 +1,6 @@
 # INFO002 - Crytologie
 ## TP1 : compromis temps / mémoire, les tables arc-en-ciel
-## Lilian Cusumano - Cassandre Kant 
+#### Par : Lilian Cusumano - Cassandre Kant 
 
 ___
 ## Utilisation de l'IA
@@ -9,11 +9,20 @@ ___
 
 ## Préliminaire 
 
-Question 1 : 
-
+**Question 1** : 
+Depuis la librairie ```crypto/sha1```, on a importé la fonction et nous avons pu tester la chaine de caractère salut, qui retourne le même résultat présenté dans le TP 
 1. Configuration globale
 
-Question 2 :
+**Question 2** :
+En go, nous avons crée la structure Global qui nous permet d'initialiser l'alphabet, la taille et le nombre de message en clair 
+```
+type Global struct {
+	alphabet string
+	taille   int
+	N        uint64
+}
+```
+
 
 2. Interface 
 Question 3 :
