@@ -38,7 +38,7 @@ func sha1Hex(texte string) []byte {
 	return sum[:]
 }
 
-func empreinteToString(empreinte []byte) string {
+func emprinteToString(empreinte []byte) string {
 	return strings.ToUpper(hex.EncodeToString(empreinte))
 }
 
@@ -49,6 +49,21 @@ func afficherConfig(g Global) {
 	fmt.Printf("Alphabet            : %s (%d caractères)\n", g.alphabet, len(g.alphabet))
 	fmt.Println("Taille des clairs   :", g.taille)
 	fmt.Println("Nombre de clairs N  :", g.N)
+}
+
+// ---------- Question 3 : numérotation des textes clairs ----------
+
+// i2c transforme un entier n (0 <= n < N) en texte clair :
+// c'est l'écriture de n en base len(alphabet), sur exactement "taille" lettres.
+// La dernière lettre correspond à n modulo len(alphabet).
+func i2c(g Global, n uint64) string {
+	base := uint64(len(g.alphabet))
+	texte := make([]byte, g.taille)
+	for i := g.taille - 1; i >= 0; i-- { // on remplit de droite à gauche
+		texte[i] = g.alphabet[n%base]
+		n /= base
+	}
+	return string(texte)
 }
 
 // ---------- Lecture des fichiers test ----------
@@ -78,7 +93,6 @@ func lireFichierTest(nomFichier string) (Global, string, []string, error) {
 
 	hashName := strings.TrimSpace(lignes[0])
 	if hashName != "SHA1" {
-
 		return Global{}, "", nil, fmt.Errorf("fonction de hachage non supportée : %q", hashName)
 	}
 
@@ -103,11 +117,24 @@ func executerCommande(g Global, commande string, arguments []string) error {
 			return fmt.Errorf("la commande hash attend 1 argument (ligne 5)")
 		}
 		texte := arguments[0]
-		fmt.Printf("%s(%q) = %s\n", g.hashName, texte, empreinteToString(sha1Hex(texte)))
+		fmt.Printf("%s(%q) = %s\n", g.hashName, texte, emprinteToString(sha1Hex(texte)))
 
 	case "config":
 		// la configuration est déjà affichée pour chaque fichier test
 		fmt.Println("(configuration affichée ci-dessus)")
+
+	case "i2c":
+		if len(arguments) < 1 {
+			return fmt.Errorf("la commande i2c attend 1 argument (ligne 5)")
+		}
+		n, err := strconv.ParseUint(strings.TrimSpace(arguments[0]), 10, 64)
+		if err != nil {
+			return fmt.Errorf("entier invalide : %q", arguments[0])
+		}
+		if n >= g.N {
+			return fmt.Errorf("%d est hors limites (il faut 0 <= n < N = %d)", n, g.N)
+		}
+		fmt.Printf("i2c(%d) = %q\n", n, i2c(g, n))
 
 	default:
 		return fmt.Errorf("commande inconnue : %q", commande)
