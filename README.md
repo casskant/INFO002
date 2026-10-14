@@ -116,15 +116,79 @@ case "h2i":
 
 ## 2.2. Table arc-en-ciel
 Question 7 : 
-Question 8 : 
-Question 9 : 
+Voici l'implémentation de i2i : 
+```
+func i2i(g Global, indice uint64, t uint64) uint64 {
+	i2c(g, indice, TEXTE)
+	EMPREINTE = sha1.Sum(TEXTE)
+	return h2i(g, EMPREINTE[:], t)
+}
+```
+Pour récupérer la chaine nous avons : 
+```
+func nouvelleChaine(g Global, idx1 uint64, largeur int) Chaine {
+	indice := idx1
+	for t := 1; t < largeur; t++ {
+		indice = i2i(g, indice, uint64(t))
+	}
+
+	return Chaine{debut: idx1, fin: indice}
+}
+```
+Et comme les autres questions, on ajoute deux cas supplémentaires dans executer_fonction :
+``` 
+case "i2i":
+		indice, _ := strconv.ParseUint(arguments[0], 10, 64)
+		t, _ := strconv.ParseUint(arguments[1], 10, 64)
+		resultat := i2i(g, indice, t)
+		// après l'appel, TEXTE et EMPREINTE contiennent les étapes intermédiaires
+		fmt.Printf("%d --i2c--> %s --h--> %s --h2i(%d)--> %d\n",
+			indice, string(TEXTE), emprinteToString(EMPREINTE[:]), t, resultat)
+		fmt.Printf("%d  --i2i(%d)-->  %d\n", indice, t, resultat)
+
+	case "chain":
+		largeur, _ := strconv.Atoi(arguments[0])
+		idx1, _ := strconv.ParseUint(arguments[1], 10, 64)
+		chaine := nouvelleChaine(g, idx1, largeur)
+		fmt.Printf("chain of length %d: %d ... %d\n", largeur, chaine.debut, chaine.fin)
+```
+Question 8 : L'ajout du paramètre t dans la fonction h2i permet d'augmenter la couverture car elle évite les colisions entre les chaines. La couverture reste quand même inferieur à 100% mais elle déjà plus grande que si la variable t n'était pas dans la fonction.
+
+Question 9 : Pour l'index aléatoire, on utilise la fonction random de la librairie math et pour créer table, on crée un tableau avec les index aléatoires à l'interieur. Ce qui ressemble à : 
+```
+// indexAleatoire renvoie un indice au hasard entre 0 et N-1.
+func indexAleatoire(g Global) uint64 {
+	return rand.Uint64N(g.N)
+}
+
+// creerTable calcule "hauteur" chaînes de "largeur" indices, triées par fin croissante.
+func creerTable(g Global, largeur int, hauteur int) []Chaine {
+	table := make([]Chaine, hauteur)
+
+	for i := 0; i < hauteur; i++ {
+		table[i] = nouvelleChaine(g, indexAleatoire(g), largeur)
+	}
+
+	sort.Slice(table, func(a int, b int) bool {
+		return table[a].fin < table[b].fin
+	})
+
+	return table
+}
+```
 Question 10 : 
+
 # 3. Mise en œuvre concrète : recherche dans une table arc-en-ciel
 Question 11 : 
+
 Question 12 (bonus):
+
 Question 13 : 
+
 Question 14 : 
+
 Question 15 : 
+
 Question 16 : 
 # 4. Améliorations
 Question 17 : 
