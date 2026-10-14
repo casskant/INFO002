@@ -7,7 +7,7 @@ ___
 - Utilisation de Claude code, bon résualtat 
 - Codé en GO
 
-## Préliminaire 
+## 0. Préliminaire 
 
 **Question 1** : 
 Depuis la librairie ```crypto/sha1```, on a importé la fonction et nous avons pu tester la chaine de caractère salut, qui retourne le même résultat présenté dans le TP. 
@@ -18,7 +18,7 @@ func sha1Hex(texte string) []byte {
 	return sum[:]
 }
 ```
-1. Configuration globale
+## 0.1 Configuration globale
 
 **Question 2** :
 En go, nous avons crée la structure Global qui nous permet d'initialiser l'alphabet, la taille et le nombre de message en clair 
@@ -29,7 +29,7 @@ type Global struct {
 	N        uint64
 }
 ```
-2. Interface 
+## 0.2 Interface 
 
 **Question 3** : 
 - Das un premier temps, on ajoute la fonction de hachage dans la structure Global. 
@@ -46,19 +46,39 @@ func afficherConfig(g Global) {
 }
 ```
 
-3. Indice et texte claire
-Question 4 :
+## 0.3 Indice et texte claire
 
+**Question 4** : Nous avons cette fonction qui nous permet de transformer n en texte claire
+ ```
+func i2c(g Global, n uint64, texte []byte) {
+nbLettres := uint64(len(g.alphabet))
 
-# 1. Idée du compromis temps-mémoire
-Question 5 (bonus) :
-1. Principe et complexité : 
+	for position := g.taille - 1; position >= 0; position-- {
+		numeroLettre := n % nbLettres
+		texte[position] = g.alphabet[numeroLettre]
+		n = n / nbLettres
+	}
+}
+```
+Et pour l'intégrer à la gestion des commandes, on a ajouté ce casx² dans la fonction ```executerCommande```
+```
+case "i2c":
+		n, _ := strconv.ParseUint(arguments[0], 10, 64)
+		texte := make([]byte, g.taille)
+		i2c(g, n, texte)
+		fmt.Println("i2c("+arguments[0]+") =", string(texte))
+```
+Nous avons donc un case par commande à executer (hash,config,i2c)
+
+## 1. Idée du compromis temps-mémoire
+**Question 5** (bonus) :
+## 1.1 Principe et complexité : 
 
 Le principe du compromis temps-mémoire repose sur le stockage de la première et de la dernière valeur de chaque chaîne, évitant ainsi d'enregistrer l'ensemble des maillons intermédiaires.
 - Pour une taille totale d'espace de recherche $N$ et des chaînes de longueur $t$ :
   - Complexité mémoire : $\mathcal{O}(N/t)$ (seules les extrémités des chaînes sont conservées)
   - Complexité temporelle : $\mathcal{O}(t^2)$ (temps nécessaire pour rebalayer les chaînes lors de la recherche)
-2. Comparaison avec les approches extrêmes
+## 1.2. Comparaison avec les approches extrêmes
 - Recherche exhaustive :
   - Temps : $\mathcal{O}(N)$
   - Mémoire : $\mathcal{O}(1)$ (ou $\mathcal{O}(\log N)$ si l'espace de recherche est trié)
@@ -67,9 +87,32 @@ Le principe du compromis temps-mémoire repose sur le stockage de la première e
   - Mémoire : $\mathcal{O}(N)$
 
 Cette méthode intermédiaire offre ainsi un équilibre optimal en réduisant l'empreinte mémoire par rapport au précalcul complet, tout en restant nettement plus rapide qu'une recherche exhaustive.
-# 2. Mise en œuvre concrète : précalcul de la table
+## 2. Mise en œuvre concrète : précalcul de la table
 ## 2.1. Indices et empreintes
-Question 6 : 
+**Question 6 :**
+Voici notre implémentation de h2i : 
+```
+func h2i(g Global, y []byte, t uint64) uint64 {
+	valeur := uint64(0)
+	poids := uint64(1)
+	for i := 0; i < 8; i++ {
+		valeur = valeur + uint64(y[i])*poids
+		poids = poids * 256
+	}
+	return (valeur + t) % g.N
+}
+```
+
+De même que pour la question 4, nous avons ajouté un cas supplémentaire : 
+```
+case "h2i":
+		texte := arguments[0]
+		t, _ := strconv.ParseUint(arguments[1], 10, 64)
+		empreinte := sha1Hex(texte)
+		indice := h2i(g, empreinte, t)
+		fmt.Println("hash("+texte+") =", emprinteToString(empreinte))
+		fmt.Println("h2i(hash("+texte+"), "+arguments[1]+") =", indice)
+```
 
 ## 2.2. Table arc-en-ciel
 Question 7 : 
