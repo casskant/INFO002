@@ -51,7 +51,22 @@ Question 4 :
 
 
 # 1. Idée du compromis temps-mémoire
-Question 5 (bonus) : 
+Question 5 (bonus) :
+1. Principe et complexité : 
+
+Le principe du compromis temps-mémoire repose sur le stockage de la première et de la dernière valeur de chaque chaîne, évitant ainsi d'enregistrer l'ensemble des maillons intermédiaires.
+- Pour une taille totale d'espace de recherche $N$ et des chaînes de longueur $t$ :
+  - Complexité mémoire : $\mathcal{O}(N/t)$ (seules les extrémités des chaînes sont conservées)
+  - Complexité temporelle : $\mathcal{O}(t^2)$ (temps nécessaire pour rebalayer les chaînes lors de la recherche)
+2. Comparaison avec les approches extrêmes
+- Recherche exhaustive :
+  - Temps : $\mathcal{O}(N)$
+  - Mémoire : $\mathcal{O}(1)$ (ou $\mathcal{O}(\log N)$ si l'espace de recherche est trié)
+- Précalcul complet (table de hachage) :
+  - Temps : $\mathcal{O}(1)$
+  - Mémoire : $\mathcal{O}(N)$
+
+Cette méthode intermédiaire offre ainsi un équilibre optimal en réduisant l'empreinte mémoire par rapport au précalcul complet, tout en restant nettement plus rapide qu'une recherche exhaustive.
 # 2. Mise en œuvre concrète : précalcul de la table
 ## 2.1. Indices et empreintes
 Question 6 : 
