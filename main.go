@@ -10,14 +10,15 @@ import (
 	"sort"
 	"strconv"
 	"strings"
+	"encoding/binary"
 )
 
 // Global regroupe la configuration lue dans les 3 premières lignes d'un fichier test.
 type Global struct {
-	hashName string // fonction de hachage (ligne 1)
-	alphabet string // alphabet des textes clairs (ligne 2)
-	taille   int    // taille des textes clairs (ligne 3)
-	N        uint64 // nombre total de textes clairs
+	hashName string
+	alphabet string 
+	taille   int    
+	N        uint64 
 }
 
 func newGlobal(hashName string, alphabet string, taille int) Global {
@@ -41,8 +42,8 @@ func newGlobal(hashName string, alphabet string, taille int) Global {
 // sha1Hex calcule l'empreinte SHA-1 d'un texte (20 octets).
 func sha1Hex(texte string) []byte {
 	octetsDuTexte := []byte(texte)
-	empreinte := sha1.Sum(octetsDuTexte) // tableau de 20 octets : [20]byte
-	return empreinte[:]                  // conversion du tableau en slice : []byte
+	empreinte := sha1.Sum(octetsDuTexte) 
+	return empreinte[:]          
 }
 
 // emprinteToString affiche une empreinte en hexadécimal, en majuscules.
@@ -76,13 +77,7 @@ func i2c(g Global, n uint64, texte []byte) {
 
 // h2i transforme une empreinte y en indice : (y[0..7] + t) % N.
 func h2i(g Global, y []byte, t uint64) uint64 {
-	valeur := uint64(0)
-	poids := uint64(1)
-	for i := 0; i < 8; i++ {
-		valeur = valeur + uint64(y[i])*poids
-		poids = poids * 256
-	}
-
+	valeur := binary.LittleEndian.Uint64(y[:8])
 	return (valeur + t) % g.N
 }
 
@@ -119,19 +114,91 @@ func indexAleatoire(g Global) uint64 {
 	return rand.Uint64N(g.N)
 }
 
+type Table struct {
+	hauteur int // nombre de chaînes
+	largeur int // longueur de chaque chaîne
+	chaines []Chaine
+}
+
 // creerTable calcule "hauteur" chaînes de "largeur" indices, triées par fin croissante.
-func creerTable(g Global, largeur int, hauteur int) []Chaine {
-	table := make([]Chaine, hauteur)
+func creerTable(g Global, largeur int, hauteur int) Table {
+	chaines := make([]Chaine, hauteur)
 
 	for i := 0; i < hauteur; i++ {
-		table[i] = nouvelleChaine(g, indexAleatoire(g), largeur)
+		chaines[i] = nouvelleChaine(g, indexAleatoire(g), largeur)
 	}
 
-	sort.Slice(table, func(a int, b int) bool {
-		return table[a].fin < table[b].fin
+	sort.Slice(chaines, func(a int, b int) bool {
+		return chaines[a].fin < chaines[b].fin
 	})
 
-	return table
+	return Table{hauteur: hauteur, largeur: largeur, chaines: chaines}
+}
+
+// ---------- Question 7 : sauvegarde / ouverture / affichage ----------
+
+func sauveTable(g Global, table Table, nomFichier string) {
+	fichier, err := os.Create(nomFichier)
+	if err != nil {
+		fmt.Println("Impossible de créer le fichier :", nomFichier)
+		os.Exit(1)
+	}
+	defer fichier.Close()
+
+	ecrivain := bufio.NewWriter(fichier)
+
+	fmt.Fprintln(ecrivain, g.hashName)
+	fmt.Fprintln(ecrivain, g.alphabet)
+	fmt.Fprintln(ecrivain, g.taille)
+	fmt.Fprintln(ecrivain, table.hauteur)
+	fmt.Fprintln(ecrivain, table.largeur)
+
+	for _, chaine := range table.chaines {
+		fmt.Fprintln(ecrivain, chaine.debut, chaine.fin)
+	}
+
+	ecrivain.Flush()
+}
+
+func ouvreTable(nomFichier string) (Global, Table) {
+	lignes := lireLignes(nomFichier)
+
+	hashName := lignes[0]
+	alphabet := lignes[1]
+	taille, _ := strconv.Atoi(lignes[2])
+	hauteur, _ := strconv.Atoi(lignes[3])
+	largeur, _ := strconv.Atoi(lignes[4])
+
+	chaines := make([]Chaine, hauteur)
+	for i := 0; i < hauteur; i++ {
+		morceaux := strings.Fields(lignes[5+i])
+		debut, _ := strconv.ParseUint(morceaux[0], 10, 64)
+		fin, _ := strconv.ParseUint(morceaux[1], 10, 64)
+		chaines[i] = Chaine{debut: debut, fin: fin}
+	}
+
+	g := newGlobal(hashName, alphabet, taille)
+	table := Table{hauteur: hauteur, largeur: largeur, chaines: chaines}
+	return g, table
+}
+
+func afficheTable(g Global, table Table, nbAffichees int) {
+	afficherConfig(g)
+	fmt.Println("Hauteur             :", table.hauteur)
+	fmt.Println("Largeur             :", table.largeur)
+	fmt.Println("Contenu :")
+
+	for i := 0; i < table.hauteur; i++ {
+		estAuDebut := i < nbAffichees
+		estALaFin := i >= table.hauteur-nbAffichees
+
+		if estAuDebut || estALaFin {
+			chaine := table.chaines[i]
+			fmt.Printf("  %09d: %d --> %d\n", i, chaine.debut, chaine.fin)
+		} else if i == nbAffichees {
+			fmt.Println("  ...")
+		}
+	}
 }
 
 // ---------- Lecture des fichiers test ----------
@@ -191,6 +258,20 @@ func executerCommande(g Global, commande string, arguments []string) {
 		idx1, _ := strconv.ParseUint(arguments[1], 10, 64)
 		chaine := nouvelleChaine(g, idx1, largeur)
 		fmt.Printf("chain of length %d: %d ... %d\n", largeur, chaine.debut, chaine.fin)
+
+	case "create":
+		hauteur, _ := strconv.Atoi(arguments[0])
+		largeur, _ := strconv.Atoi(arguments[1])
+		nomFichier := arguments[2]
+		table := creerTable(g, largeur, hauteur)
+		sauveTable(g, table, nomFichier)
+		fmt.Println("Table sauvegardée dans", nomFichier)
+
+	case "info":
+		nomFichier := arguments[0]
+		gTable, table := ouvreTable(nomFichier)
+		fmt.Println("Table lue dans", nomFichier)
+		afficheTable(gTable, table, 10)
 
 	default:
 		fmt.Println("Commande inconnue :", commande)
