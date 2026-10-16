@@ -425,6 +425,24 @@ func executerCommande(g Global, commande string, arguments []string) {
 		largeur, _ := strconv.Atoi(arguments[1])
 		afficheStats(g, hauteur, largeur)
 
+	case "create_crack":
+		hauteur, _ := strconv.Atoi(arguments[0])
+		largeur, _ := strconv.Atoi(arguments[1])
+		nomFichier := arguments[2]
+		empreinteHex := arguments[3]
+
+		table := creerTable(g, largeur, hauteur)
+		sauveTable(g, table, nomFichier)
+		fmt.Println("Table sauvegardée dans", nomFichier)
+
+		h, _ := hex.DecodeString(empreinteHex)
+		clair, trouve := inverse(g, table, h)
+		if trouve {
+			fmt.Printf("crack(%s) = %q\n", emprinteToString(h), clair)
+		} else {
+			fmt.Printf("crack(%s) : aucun antécédent trouvé dans la table\n", emprinteToString(h))
+		}
+
 	default:
 		fmt.Println("Commande inconnue :", commande)
 	}
