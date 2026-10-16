@@ -4,8 +4,13 @@
 
 ___
 ## Utilisation de l'IA
-- Utilisation de Claude code, bon résualtat 
-- Codé en GO
+Dans le cadre de ce TP, nous utilisons claude pour nous donner le plan d'action des certaines questions compliquées du TP. 
+L'objectif est de lui donner le contexte de la fonction, la demande de résolution en le limitant sur les points d'attention.
+Une fois le code ou une partie du code généré, nous relisons le code pour épurer ce qui doit l'être et corrigé en fonction de ce qu'on veut 
+Le code est donc relu et tester pour chaque utilisation. 
+
+Pour la partie compte rendu, on l'utilise pour reformuler une réponse lorsqu'on trouve qu'elle n'est pas assez compréhensible. Pour ce TP ce n'est pas le cas mais li nous arrive de générer les grands titres du compte rendu en fonction du sujet et de modifier en conséquence si ce n'est pas totalement ce qui est voulu. 
+
 
 ## 0. Préliminaire 
 
@@ -176,14 +181,91 @@ func creerTable(g Global, largeur int, hauteur int) []Chaine {
 	return table
 }
 ```
-Question 10 : 
+Question 10 : Pour cette question, nous avons stocké nos tables dans des fichiers en bit, au début nous l'avions fait en stockant l'ascii mais on a trouvé plus pertinent d'enregistrer les bits. 
+Donc nous avons sauver table : 
+
+```
+func sauveTable(g Global, table Table, nomFichier string) {
+	fichier, err := os.Create(nomFichier)
+	if err != nil {
+		fmt.Println("Impossible de créer le fichier :", nomFichier)
+		os.Exit(1)
+	}
+	defer fichier.Close()
+
+	ecrivain := bufio.NewWriter(fichier)
+
+	fmt.Fprintln(ecrivain, g.hashName)
+	fmt.Fprintln(ecrivain, g.alphabet)
+	fmt.Fprintln(ecrivain, g.taille)
+	fmt.Fprintln(ecrivain, table.hauteur)
+	fmt.Fprintln(ecrivain, table.largeur)
+
+	for _, chaine := range table.chaines {
+		fmt.Fprintln(ecrivain, chaine.debut, chaine.fin)
+	}
+
+	ecrivain.Flush()
+}
+```
 
 # 3. Mise en œuvre concrète : recherche dans une table arc-en-ciel
-Question 11 : 
+**Question 11** : Pour récupérer les premières lignes, nous avons implémenter recherche : 
+```
+func recherche(table Table, idx uint64) (int, int) {
+	chaines := table.chaines
 
-Question 12 (bonus):
+	// a = première ligne dont la fin est >= idx
+	a := sort.Search(len(chaines), func(i int) bool {
+		return chaines[i].fin >= idx
+	})
 
-Question 13 : 
+	if a == len(chaines) || chaines[a].fin != idx {
+		return 0, -1 // idx absent de la dernière colonne
+	}
+
+	// b = dernière ligne dont la fin vaut idx
+	b := a
+	for b+1 < len(chaines) && chaines[b+1].fin == idx {
+		b++
+	}
+	return a, b
+}
+```
+Et l'ajout du cas de crack ressemble à : 
+```
+case "crack":
+		empreinteHex := arguments[0]
+		nomFichier := arguments[1]
+		h, _ := hex.DecodeString(empreinteHex)
+
+		// on utilise la configuration enregistrée dans la table elle-même
+		gTable, table := ouvreTable(nomFichier)
+		TEXTE = make([]byte, gTable.taille)
+
+		clair, trouve := inverse(gTable, table, h)
+		if trouve {
+			fmt.Printf("crack(%s) = %q\n", emprinteToString(h), clair)
+		} else {
+			fmt.Printf("crack(%s) : aucun antécédent trouvé dans la table\n", emprinteToString(h))
+		}
+
+```
+
+**Question 12** (bonus): Pour m chaînes, longueur t, réductions R₁…R_t (une par colonne), hash h.
+
+Pour un haché h à retrouver, on suppose successivement qu’il se trouve à la colonne i = t−1, t−2, …, 1 :
+
+On calcule la fin de chaîne à partir de cette hypothèse : R_i, h, R_{i+1}, h, …, R_{t−1}. Cela coûte (t−i) évaluations de h et de R.
+On cherche le point obtenu parmi les fins de chaînes. Avec une table triée, c’est O(log m).
+En cas de correspondance, on reconstruit la chaîne depuis son début (O(t)) et on vérifie que h y apparaît.
+
+- Coût du calcul des fins de chaîne : O(t²) évaluations de h et R
+- Coût des recherches : t × O(log m) 
+
+Donc la complexité et égale à  O(t² + t·log m) = O(t²) (car log m ≪ t en pratique)
+
+**Question 13** :  
 
 Question 14 : 
 
