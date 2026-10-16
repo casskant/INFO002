@@ -231,8 +231,9 @@ func recherche(table Table, idx uint64) (int, int) {
 	}
 	return a, b
 }
+
 ```
-Et l'ajout du cas de crack ressemble à : 
+Et l'ajout du cas de la commande crack ressemble à : 
 ```
 case "crack":
 		empreinteHex := arguments[0]
@@ -265,13 +266,44 @@ En cas de correspondance, on reconstruit la chaîne depuis son début (O(t)) et 
 
 Donc la complexité et égale à  O(t² + t·log m) = O(t²) (car log m ≪ t en pratique)
 
-**Question 13** :  
+**Question 13** : Pour les estimations, nous aurons décidé de faire une fonction par estimation ce qui nous donne :
+```
+func estimationCouverture(N uint64, hauteur int, largeur int) float64 {
+	Nf := float64(N)
+	m := float64(hauteur)
+	v := 1.0
+	for i := 0; i < largeur; i++ {
+		v = v * (1 - m/Nf)
+		m = Nf * (1 - math.Exp(-m/Nf))
+	}
+	return 100 * (1 - v)
+}
 
-Question 14 : 
+func tailleLisible(octets uint64) string {
+	o := float64(octets)
+	switch {
+	case o >= 1024*1024:
+		return fmt.Sprintf("%.1f M", o/1024/1024)
+	case o >= 1024:
+		return fmt.Sprintf("%.1f K", o/1024)
+	default:
+		return fmt.Sprintf("%d B", octets)
+	}
+}
+```
+Et pour la gestion la commande stats : 
+```
+case "stats":
+		hauteur, _ := strconv.Atoi(arguments[0])
+		largeur, _ := strconv.Atoi(arguments[1])
+		afficheStats(g, hauteur, largeur)
+```
 
-Question 15 : 
+**Question 14** : 
 
-Question 16 : 
+**Question 15** : 
+
+**Question 16** : 
 # 4. Améliorations
 Question 17 : 
 # 4.1. Parallélisation du code
