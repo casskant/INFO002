@@ -303,9 +303,4 @@ case "stats":
 
 **Question 15** : 
 
-**Question 16** : 
-# 4. Améliorations
-Question 17 : 
-# 4.1. Parallélisation du code
-# 4.2. Plusieurs tables
-# 4.3. Tailles min et max
+**Question 16** :
