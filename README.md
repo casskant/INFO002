@@ -300,7 +300,119 @@ case "stats":
 ```
 
 **Question 14** : 
+1. Machine de test
+- Débit mesuré : **~4,3 à 4,5 millions d'appels à `i2i` par seconde** (1 cœur).
+- La commande `stats` utilise une constante de référence de 2 211 000 hash/s
+  (machine du sujet). Mes temps réels sont donc environ 2× plus rapides que les
+  estimations affichées par `stats`.
 
-**Question 15** : 
+2. Choix des paramètres
+
+Une chaîne de largeur `l` couvre ~`l` indices ; une table de hauteur `h`
+couvre donc au mieux ~`h·l` indices, mais les fusions réduisent cette valeur.
+J'ai utilisé la formule de couverture (commande `stats`) pour choisir `h` et `l`
+en visant **~99 %**, tout en gardant :
+
+- un temps de création raisonnable (~`h·l / débit`),
+- un temps de recherche court (~`l² / débit` dans le pire cas), ce qui pousse à
+  ne pas prendre `l` trop grand.
+
+3. Résultats
+
+| Cible | Alphabet | taille | N | hauteur | largeur | couverture |
+|-------|----------|:------:|---|---------|---------|:----------:|
+| 1 | `A–Z` | 4 | 456 976 | 8 000 | 2 000 | 99,71 % |
+| 2 | `a–z0–9,;:$.` (41) | 5 | 115 856 201 | 150 000 | 10 000 | 98,21 % |
+| 3 | `a–z0–9,;:$` (40) | 6 | 4 096 000 000 | 4 000 000 | 20 000 | 99,14 % |
+| 4 | `a–z0–9,;:$` (40) | 7 | 163 840 000 000 | 80 000 000 | 40 000 | 99,14 % |
+
+Cible 1 :
+
+- Taille de la table : **128 070 octets (~125 K)**.
+- Temps de création : **~3,6 s**.
+- Temps d'inversion : **< 1 s**.
+- Fichiers : `test_files/crack01.txt`, `test_files/crack02.txt`.
+
+Cible 2 : 
+- Taille de la table : **2 400 085 octets (~2,3 M)**.
+- Temps de création : **~5 min 56 s** (1,5 milliard d'appels à `i2i`).
+- Temps d'inversion : **~0,7 s**.
+- Fichiers : `test_files/crack03.txt`, `test_files/crack04.txt`.
+
+Cible 3 :
+
+Estimation par `stats` (`test_files/stats05.txt`) :
+
+```
+Taille estimée        : 61.0 M
+Temps de création     : 10 h 3 min 3 s      (≈ 5 h sur ma machine)
+Probabilité de succès : 99.14%
+Temps de recherche    : 3 min 1 s           (≈ 1 min 30 s sur ma machine)
+```
+
+Le fichier `test_files/crack05.txt` permet de lancer réellement la création +
+inversion sur une machine qui en a le temps.
+
+Cible 4 :
+
+Estimation par `stats` (`test_files/stats06.txt`) :
+
+```
+Taille estimée        : 1220.7 M
+Temps de création     : 402 h 1 min 49 s    (≈ 16,7 jours ; ~8 jours sur ma machine)
+Probabilité de succès : 99.14%
+Temps de recherche    : 12 min 4 s          (≈ 6 min sur ma machine)
+```
+
+Fichier `test_files/crack06.txt`.
+
+**Question 15** :
+Paramètres choisis : `hauteur = 560 000 000`, `largeur = 100 000`
+(`hauteur·largeur ≈ 20·N`). 
+
+Estimation `stats` (`test_files/stats_36p8.txt`) :
+
+```
+Taille estimée        : 8544.9 M   (~8,3 Go)
+Temps de création     : 7035 h 31 min   (~293 jours ; ~145 j sur ma machine)
+Probabilité de succès : 99.16%
+Temps de recherche    : 1 h 15 min   (~37 min sur ma machine)
+```
+
+La construction d'une seule table est donc déjà hors de portée sur une machine
+(des mois). Il faudrait paralléliser massivement et accepter ~8 Go de stockage.
 
 **Question 16** :
+Débit mesuré d'un balayage complet : **~5,3 millions de SHA-1/s** (1 cœur).
+Balayage complet de `N = 115 856 201` mesuré à **~22 s**.
+
+1. Inversion des cibles par recherche exhaustive
+
+| Cible | N | temps (pire cas) | temps (moyen) | résultat |
+|-------|---|:----------------:|:-------------:|----------|
+| 1 (`26^4`) | 456 976 | 0,09 s | 0,04 s | `CODE` (mesuré < 0,1 s) |
+| 2 (`41^5`) | 115 856 201 | ~22 s | ~11 s | `n00b.` (mesuré ~7 s) |
+| 3 (`40^6`) | 4 096 000 000 | ~13 min | ~6 min | estimé |
+| 4 (`40^7`) | 163 840 000 000 | ~8,6 h | ~4,3 h | estimé |
+
+Fichiers : `test_files/bruteforce01.txt` … `bruteforce04.txt`
+(`bruteforce00.txt` = exemple du sujet → `ZIP`).
+
+ 2. Recherche exhaustive pour les paramètres de 36^8
+
+`N = 2,82·10¹²` à ~5,3·10⁶ SHA-1/s (1 cœur) :
+**~6,2 jours (pire cas), ~3,1 jours en moyenne.**
+ 
+3. Comparaison table vs force brute
+
+Pour **une seule** empreinte, la force brute gagne souvent :
+
+- Cible 3 : force brute ~6–13 min, **aucun stockage** — contre ~5 h de
+  construction de table (61 Mo) pour la même couverture.
+- 36^8 : force brute ~3–6 jours pour une empreinte — contre ~5 mois de
+  construction + 8 Go pour la table.
+
+La table arc-en-ciel n'est rentable que si l'on inverse **beaucoup** d'empreintes
+avec les **mêmes** paramètres : le coût de construction est payé une fois, puis
+chaque inversion est rapide (minutes/heures au lieu de jours). Pour un seul mot
+de passe, la recherche exhaustive est généralement préférable.
