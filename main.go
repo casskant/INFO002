@@ -281,6 +281,22 @@ func inverse(g Global, table Table, h []byte) (string, bool) {
 	return "", false
 }
 
+// ---------- recherche exhaustive ----------
+
+func bruteforce(g Global, h []byte) (string, bool) {
+	clair := make([]byte, g.taille)
+	var cible [sha1.Size]byte
+	copy(cible[:], h)
+
+	for idx := uint64(0); idx < g.N; idx++ {
+		i2c(g, idx, clair)
+		if sha1.Sum(clair) == cible {
+			return string(clair), true
+		}
+	}
+	return "", false
+}
+
 // ---------- estimations (stats) ----------
 
 // débit de i2i mesuré sur une machine de référence ; à réajuster selon la machine
@@ -418,6 +434,16 @@ func executerCommande(g Global, commande string, arguments []string) {
 			fmt.Printf("crack(%s) = %q\n", emprinteToString(h), clair)
 		} else {
 			fmt.Printf("crack(%s) : aucun antécédent trouvé dans la table\n", emprinteToString(h))
+		}
+
+	case "bruteforce":
+		empreinteHex := arguments[0]
+		h, _ := hex.DecodeString(empreinteHex)
+		clair, trouve := bruteforce(g, h)
+		if trouve {
+			fmt.Printf("bruteforce(%s) = %q\n", emprinteToString(h), clair)
+		} else {
+			fmt.Printf("bruteforce(%s) : aucun antécédent trouvé\n", emprinteToString(h))
 		}
 
 	case "stats":
